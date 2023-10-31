@@ -1,2 +1,2 @@
 # rplot
-ROS package providing basic plottting functionality via ROOT-framework. 
+ROS package providing basic plotting functionality via ROOT-framework. 

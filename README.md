@@ -4,7 +4,7 @@ ROS package providing basic plotting functionality via ROOT-framework.
 ![alt text](https://github.com/nicolasfrick/rplot/blob/main/out/plot.png)) 
 
 ## Install
-Download the [CERN Root Framework](https://root.cern) [pre-compiled binary distribution](https://root.cern/install/#download-a-pre-compiled-binary-distribution) to your '$HOME' folder and install required dependencies like described.
+Download the [CERN Root Framework](https://root.cern) [pre-compiled binary distribution](https://root.cern/install/#download-a-pre-compiled-binary-distribution) to your `$HOME` folder and install required dependencies like described.
 
 Download the rplot package and build the workspace.
 
@@ -14,7 +14,7 @@ Download the rplot package and build the workspace.
     $ cd .. && catkin build
 ```
 
-##Use
+## Use
 Include the rplot package to your project, instantiate a MainFrame, add data and plot either to pdf file or to interactive window.
 
 ```
@@ -25,4 +25,4 @@ Include the rplot package to your project, instantiate a MainFrame, add data and
     mf.savePdf(true, true, true, false, "plot.pdf");
 ```
 
-Tested for Ubuntu 20.04 and ROS-noetic.
+Tested for ROS-noetic on Ubuntu 20.04 and ROOT version root_v6.28.06.Linux-ubuntu20-x86_64-gcc9.4.

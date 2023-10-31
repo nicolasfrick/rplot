@@ -1,8 +1,7 @@
 # rplot
 ROS package providing basic plotting functionality via ROOT-framework. 
 
-![plot]([/out/plot.png =100x100](https://github.com/nicolasfrick/rplot/blob/main/out/plot.png)) 
-<!-- ![smiley](smiley.png){:height="36px" width="36px"} -->
+![alt text](https://github.com/nicolasfrick/rplot/blob/main/out/plot.png)) 
 
 ## Install
 Download the [CERN Root Framework](https://root.cern) [pre-compiled binary distribution](https://root.cern/install/#download-a-pre-compiled-binary-distribution) to your '$HOME' folder and install required dependencies like described.

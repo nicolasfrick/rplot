@@ -1,6 +1,5 @@
 #include <TApplication.h>
 #include <TGraphErrors.h>
-#include <TLegend.h>
 #include <TArrow.h>
 #include <TLatex.h>
 #include <TGClient.h>
@@ -8,7 +7,6 @@
 #include <TRandom.h>
 #include <TGButton.h>
 #include <TCanvas.h>
-#include <TMultiGraph.h>
 #include <ros/package.h>
 
 #include "../include/rplot.h"
@@ -22,16 +20,38 @@ MainFrame::MainFrame()
   ROOT::EnableThreadSafety();
 }
 
-void MainFrame::addData1(const double t, const double pos, const double vel, const double acc)
+void MainFrame::addData1(const double t, const double pos, const double vel, const double acc, const double jerk, const bool add_jerk)
 {
   pos1.push_back(pos);
   vel1.push_back(vel);
-  double jerk = 0.0;
-  if (acc1.size() > 0 && t > 0.0)
-    jerk = (acc - *acc1.end()) / (t - *t1.end());
+  if (add_jerk)
+    jerk1.push_back(jerk);
+  else
+  {
+    if (acc1.size() > 0 && t > 0.0)
+      jerk1.push_back((acc - acc1.back()) / (t - t1.back()));
+    else
+      jerk1.push_back(0.0);
+  }
   acc1.push_back(acc);
-  jerk1.push_back(jerk);
   t1.push_back(t);
+}
+
+void MainFrame::addData2(const double t, const double pos, const double vel, const double acc, const double jerk, const bool add_jerk)
+{
+  pos2.push_back(pos);
+  vel2.push_back(vel);
+  if (add_jerk)
+    jerk2.push_back(jerk);
+  else
+  {
+    if (acc2.size() > 0 && t > 0.0)
+      jerk2.push_back((acc - acc2.back()) / (t - t2.back()));
+    else
+      jerk2.push_back(0.0);
+  }
+  acc2.push_back(acc);
+  t2.push_back(t);
 }
 
 void MainFrame::clearData1()
@@ -41,6 +61,15 @@ void MainFrame::clearData1()
   acc1.clear();
   jerk1.clear();
   t1.clear();
+}
+
+void MainFrame::clearData2()
+{
+  pos2.clear();
+  vel2.clear();
+  acc2.clear();
+  jerk2.clear();
+  t2.clear();
 }
 
 void MainFrame::plot(const bool plt_pos1, const bool plt_vel1, const bool plt_acc1)
@@ -153,7 +182,18 @@ void MainFrame::doDraw(const bool plt_pos1, const bool plt_vel1, const bool plt_
   fCanvas->Update();
 }
 
-void MainFrame::savePdf(const bool plt_pos1, const bool plt_vel1, const bool plt_acc1, const bool plt_jerk1, const std::string save_file)
+void MainFrame::drawMultiGraph(TMultiGraph *mg, TGraph *g, TLegend *leg, std::vector<double> &data1, std::vector<double> &data2, EColor color, std::string label)
+{
+  g = new TGraph(static_cast<Int_t>(data1.size()), data1.data(), data2.data());
+  g->SetLineColor(color);
+  mg->Add(g);
+  auto maxit = std::minmax_element(data2.begin(), data2.end());
+  auto absmax = {std::fabs(*maxit.first), std::fabs(*maxit.second)};
+  std::string txt = label + " " + std::to_string(*std::max_element(absmax.begin(), absmax.end()));
+  leg->AddEntry(g, txt.c_str());
+}
+
+void MainFrame::savePdf(const bool plt_pos, const bool plt_vel, const bool plt_acc, const bool plt_jerk, const std::string save_file, const bool plt_data2)
 {
   if (t1.size() == 0 || cnt > 100)
   {
@@ -161,60 +201,52 @@ void MainFrame::savePdf(const bool plt_pos1, const bool plt_vel1, const bool plt
   }
 
   TCanvas canvas("Canvas");
-  TMultiGraph mg;
-  TGraph *g1=nullptr, *g2=nullptr, *g3=nullptr, *g4=nullptr;
-  TLegend leg(.1,.7,.3,.9,"");
-  leg.SetFillColor(0);
-
-  if (plt_pos1 && pos1.size())
+  if (plt_data2)
   {
-    g1 = new TGraph(static_cast<Int_t>(t1.size()), t1.data(), pos1.data());
-    g1->SetLineColor(kBlue);
-    mg.Add(g1);
-    leg.AddEntry(g1,"Position");
+    canvas.Divide(1,2);
+    canvas.cd(1);
   }
 
-  if (plt_vel1 && vel1.size())
+  TMultiGraph mg1, mg2;
+  TGraph *g11=nullptr, *g12=nullptr, *g13=nullptr, *g14=nullptr;
+  TGraph *g21=nullptr, *g22=nullptr, *g23=nullptr, *g24=nullptr;
+  TLegend leg1(.1,.7,.3,.9,"");
+  leg1.SetFillColor(0);
+  TLegend leg2 = leg1;
+
+  if (plt_pos && pos1.size())
+    drawMultiGraph(&mg1, g11, &leg1, t1, pos1, kBlue, "Position");
+  if (plt_vel && vel1.size())
+    drawMultiGraph(&mg1, g12, &leg1, t1, vel1, kGreen, "Velocity");
+  if (plt_acc && acc1.size())
+    drawMultiGraph(&mg1, g13, &leg1, t1, acc1, kRed, "Acceleration");
+  if (plt_jerk && jerk1.size())
+    drawMultiGraph(&mg1, g14, &leg1, t1, jerk1, kViolet, "Jerk");
+  mg1.SetTitle("Plot1");
+  mg1.Draw("LA");
+  leg1.Draw("Same");
+
+  if (plt_data2)
   {
-    g2 = new TGraph(static_cast<Int_t>(t1.size()), t1.data(), vel1.data());
-    g2->SetLineColor(kGreen);
-    mg.Add(g2);
-    auto maxit = std::minmax_element(vel1.begin(), vel1.end());
-    auto absmax = {std::fabs(*maxit.first), std::fabs(*maxit.second)};
-    std::string txt = "Velocity " + std::to_string(*std::max_element(absmax.begin(), absmax.end())) + " rad/s";
-    leg.AddEntry(g2,txt.c_str());
+    canvas.cd(2);
+    if (plt_pos && pos2.size())
+      drawMultiGraph(&mg2, g21, &leg2, t2, pos2, kBlue, "Position");
+    if (plt_vel && vel2.size())
+      drawMultiGraph(&mg2, g22, &leg2, t2, vel2, kGreen, "Velocity");
+    if (plt_acc && acc2.size())
+      drawMultiGraph(&mg2, g23, &leg2, t2, acc2, kRed, "Acceleration");
+    if (plt_jerk && jerk2.size())
+      drawMultiGraph(&mg2, g24, &leg2, t2, jerk2, kViolet, "Jerk");
+    mg2.SetTitle("Plot2");
+    mg2.Draw("LA");
+    leg2.Draw("Same");
   }
-
-  if (plt_acc1 && acc1.size())
-  {
-    g3 = new TGraph(static_cast<Int_t>(t1.size()), t1.data(), acc1.data());
-    g3->SetLineColor(kRed);
-    mg.Add(g3);
-    auto maxit = std::minmax_element(acc1.begin(), acc1.end());
-    auto absmax = {std::fabs(*maxit.first), std::fabs(*maxit.second)};
-    std::string txt = "Acceleration " + std::to_string(*std::max_element(absmax.begin(), absmax.end())) + " rad/s^2";
-    leg.AddEntry(g3,txt.c_str());
-  }
-
-  if (plt_jerk1 && jerk1.size())
-  {
-    g4 = new TGraph(static_cast<Int_t>(t1.size()), t1.data(), jerk1.data());
-    g4->SetLineColor(kViolet);
-    mg.Add(g4);
-    auto maxit = std::minmax_element(jerk1.begin(), jerk1.end());
-    auto absmax = {std::fabs(*maxit.first), std::fabs(*maxit.second)};
-    std::string txt = "Jerk " + std::to_string(*std::max_element(absmax.begin(), absmax.end())) + " rad/s^3";
-    leg.AddEntry(g4,txt.c_str());
-  }
-
-  mg.SetTitle("Plot");
-  mg.Draw("LA");
-
-  leg.Draw("Same");
 
   canvas.SetGrid();
   std::string fn = ros::package::getPath("rplot") + "/out/" + std::to_string(cnt++) + "_" + save_file;
   canvas.Print(fn.c_str());
 
   clearData1();
+  if (plt_data2)
+    clearData2();
 }

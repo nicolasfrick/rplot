@@ -40,6 +40,11 @@ namespace rplot
       std::vector<double> acc2;
       std::vector<double> jerk2;
       std::vector<double> t2;
+      std::vector<double> pos3;
+      std::vector<double> vel3;
+      std::vector<double> acc3;
+      std::vector<double> jerk3;
+      std::vector<double> t3;
 
       TGMainFrame         *fMain;
       TRootEmbeddedCanvas *fEcanvas;
@@ -65,16 +70,20 @@ namespace rplot
                     const bool plt_jerk,
                     const std::string save_file,
                     const bool plt_data2=false,
+                    const bool plt_data3=false,
                     const bool plt_error1=false,
                     const std::string title1="Plot1",
-                    const std::string title2="Plot2");
+                    const std::string title2="Plot2",
+                    const std::string title3="Plot3");
        void savePdfHisto(std::vector<double> &data1, const std::string save_file, const std::string title="Histo1");
        // add data for plotting
        void addData1(const double t, const double pos, const double vel=0.0, const double acc=0.0, const double jerk=0.0, const bool add_jerk=false);
        void addData2(const double t, const double pos, const double vel=0.0, const double acc=0.0, const double jerk=0.0, const bool add_jerk=false);
+       void addData3(const double t, const double pos, const double vel=0.0, const double acc=0.0, const double jerk=0.0, const bool add_jerk=false);
        void addError1(const double t, const double pos, const double vel=0.0, const double acc=0.0, const double jerk=0.0);
        void clearData1();
        void clearData2();
+       void clearData3();
        void clearError1();
   };
 

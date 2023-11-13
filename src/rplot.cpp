@@ -63,6 +63,23 @@ void MainFrame::addData2(const double t, const double pos, const double vel, con
   t2.push_back(t);
 }
 
+void MainFrame::addData3(const double t, const double pos, const double vel, const double acc, const double jerk, const bool add_jerk)
+{
+  pos3.push_back(pos);
+  vel3.push_back(vel);
+  if (add_jerk)
+    jerk3.push_back(jerk);
+  else
+  {
+    if (acc3.size() > 0 && t > 0.0)
+      jerk3.push_back((acc - acc3.back()) / (t - t3.back()));
+    else
+      jerk3.push_back(0.0);
+  }
+  acc3.push_back(acc);
+  t3.push_back(t);
+}
+
 void MainFrame::clearData1()
 {
   pos1.clear();
@@ -88,6 +105,15 @@ void MainFrame::clearData2()
   acc2.clear();
   jerk2.clear();
   t2.clear();
+}
+
+void MainFrame::clearData3()
+{
+  pos3.clear();
+  vel3.clear();
+  acc3.clear();
+  jerk3.clear();
+  t3.clear();
 }
 
 void MainFrame::plot(const bool plt_pos1, const bool plt_vel1, const bool plt_acc1)
@@ -215,12 +241,12 @@ void MainFrame::drawMultiGraphErrors(TMultiGraph *mg, TGraph *g, TLegend *leg, s
 {
   std::vector<double> bar(data1.size(), 0.5);
   g = new TGraphErrors(static_cast<Int_t>(data1.size()), data1.data(), data2.data(), bar.data(), data3.data());
-  for (size_t i=0; i < data1.size(); i++)
-  {
-    Double_t nex = g->GetErrorX(static_cast<Int_t>(i));
-    Double_t ney = g->GetErrorY(static_cast<Int_t>(i));// /100.;
-    dynamic_cast<TGraphErrors*>(g)->SetPointError(static_cast<Int_t>(i), nex, ney);
-  }
+//  for (size_t i=0; i < data1.size(); i++)
+//  {
+//    Double_t nex = g->GetErrorX(static_cast<Int_t>(i));
+//    Double_t ney = g->GetErrorY(static_cast<Int_t>(i)) /100.;
+//    dynamic_cast<TGraphErrors*>(g)->SetPointError(static_cast<Int_t>(i), nex, ney);
+//  }
   g->SetLineColor(color);
   g->SetLineWidth(1);
   mg->Add(g);
@@ -245,7 +271,7 @@ void MainFrame::savePdfHisto(std::vector<double> &data1, const std::string save_
   canvas.SaveAs(fn.c_str());
 }
 
-void MainFrame::savePdf(const bool plt_pos, const bool plt_vel, const bool plt_acc, const bool plt_jerk, const std::string save_file, const bool plt_data2, const bool plt_error1, const std::string title1, const std::string title2)
+void MainFrame::savePdf(const bool plt_pos, const bool plt_vel, const bool plt_acc, const bool plt_jerk, const std::string save_file, const bool plt_data2, const bool plt_data3, const bool plt_error1, const std::string title1, const std::string title2, const std::string title3)
 {
   if (t1.size() == 0 || cnt > 100)
   {
@@ -257,18 +283,25 @@ void MainFrame::savePdf(const bool plt_pos, const bool plt_vel, const bool plt_a
   canvas.SetGrid();
   canvas.GetFrame()->SetFillColor(21);
   canvas.GetFrame()->SetBorderSize(12);
-  if (plt_data2)
+  if (plt_data2 && !plt_data3)
   {
     canvas.Divide(1,2);
     canvas.cd(1);
   }
+  else if (plt_data3)
+  {
+    canvas.Divide(1,3);
+    canvas.cd(1);
+  }
 
-  TMultiGraph mg1, mg2;
+  TMultiGraph mg1, mg2, mg3;
   TGraph *g11=nullptr, *g12=nullptr, *g13=nullptr, *g14=nullptr;
   TGraph *g21=nullptr, *g22=nullptr, *g23=nullptr, *g24=nullptr;
+  TGraph *g31=nullptr, *g32=nullptr, *g33=nullptr, *g34=nullptr;
   TLegend leg1(.1,.7,.3,.9,"");
   leg1.SetFillColor(0);
   TLegend leg2 = leg1;
+  TLegend leg3 = leg1;
 
   if (plt_pos && pos1.size())
   {
@@ -299,8 +332,7 @@ void MainFrame::savePdf(const bool plt_pos, const bool plt_vel, const bool plt_a
       drawMultiGraphErrors(&mg1, g14, &leg1, t1, jerk1, jerk_err1, kViolet, "Jerk");
   }
   mg1.SetTitle(title1.c_str());
-//  mg1.Draw("LA");
-  mg1.Draw("ALP");
+  mg1.Draw("ALPZ");
   leg1.Draw("Same");
 
   if (plt_data2)
@@ -315,8 +347,24 @@ void MainFrame::savePdf(const bool plt_pos, const bool plt_vel, const bool plt_a
     if (plt_jerk && jerk2.size())
       drawMultiGraph(&mg2, g24, &leg2, t2, jerk2, kViolet, "Jerk");
     mg2.SetTitle(title2.c_str());
-    mg2.Draw("LA");
+    mg2.Draw("ALP");
     leg2.Draw("Same");
+  }
+
+  if (plt_data3)
+  {
+    canvas.cd(3);
+    if (plt_pos && pos3.size())
+      drawMultiGraph(&mg3, g31, &leg3, t3, pos3, kBlue, "Position");
+    if (plt_vel && vel3.size())
+      drawMultiGraph(&mg3, g32, &leg3, t3, vel3, kGreen, "Velocity");
+    if (plt_acc && acc3.size())
+      drawMultiGraph(&mg3, g33, &leg3, t3, acc3, kRed, "Acceleration");
+    if (plt_jerk && jerk3.size())
+      drawMultiGraph(&mg3, g34, &leg3, t3, jerk3, kViolet, "Jerk");
+    mg3.SetTitle(title3.c_str());
+    mg3.Draw("ALP");
+    leg3.Draw("Same");
   }
 
   std::string fn = ros::package::getPath("rplot") + "/out/" + std::to_string(cnt++) + "_" + save_file;
@@ -325,6 +373,8 @@ void MainFrame::savePdf(const bool plt_pos, const bool plt_vel, const bool plt_a
   clearData1();
   if (plt_data2)
     clearData2();
+  if (plt_data3)
+    clearData3();
   if (plt_error1)
     clearError1();
 }
